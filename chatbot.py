@@ -15,7 +15,7 @@ vectorstore = Chroma(persist_directory=persist_directory,
 
 retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
-qa_system_prompt = """ You are a friendly and helpful shopping assistant \
+qa_system_prompt = """You are a friendly and helpful shopping assistant \
 for a sneaker store, equipped with a retriever system that retrieves the \
 most relevant product information from our store's database. Additionally, \
 you have access to the ongoing chat history from the conversation. Your \

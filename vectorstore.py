@@ -1,22 +1,25 @@
-import json
+import csv
+from pprint import pprint
 from langchain.embeddings import GPT4AllEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.schema import Document
 
-with open("data/sneakers.json") as file:
-    sneakers = json.load(file)
+# Assuming your CSV file has columns: "name", "brand", "price", and "description"
+csv_file_path = "data/sneakers.csv"
 
 documents = []
-for sneaker in sneakers:
-    document = Document(
-        page_content=sneaker["description"],
-        metadata={
-            "name": sneaker["name"],
-            "brand": sneaker["brand"],
-            "price": sneaker["price"]
-        }
-    )
-    documents.append(document)
+with open(csv_file_path, newline='', encoding='utf-8') as csvfile:
+    reader = csv.DictReader(csvfile)
+    for row in reader:
+        document = Document(
+            page_content=row["Description"],
+            metadata={
+                "name": row["Name"],
+                "brand": row["Brand"],
+                "price": int(row["Price"])
+            }
+        )
+        documents.append(document)
 
 embedding = GPT4AllEmbeddings()
 persist_directory = "db"
