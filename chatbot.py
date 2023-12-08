@@ -13,7 +13,7 @@ embedding_function = GPT4AllEmbeddings()
 vectorstore = Chroma(persist_directory=persist_directory,
                      embedding_function=embedding_function)
 
-retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+retriever = vectorstore.as_retriever(search_kwargs={"k": 2})
 
 qa_system_prompt = """You are a friendly and helpful shopping assistant \
 for a sneaker store, equipped with a retriever system that retrieves the \
@@ -84,16 +84,18 @@ rag_chain = (
 print("\n"*100)
 chat_history = []
 while True:
-    if len(chat_history) > 10:
+    if len(chat_history) > 3:
         chat_history.pop(0)
     question = input("Human: ")
     if question == "":
         break
     ai_msg = rag_chain.invoke(
         {"question": question, "chat_history": chat_history})
-    print(f"AI: {ai_msg.content.strip()}")
+    answer = ai_msg.content.strip().replace("\n\n", "\n").replace("\n", " ")
+    print(f"AI: {answer}")
     chat_history.extend(
         [HumanMessage(content=question), ai_msg])
+    print()
 
 print("\n")
 for message_pair in chat_history:
