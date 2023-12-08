@@ -1,10 +1,11 @@
+from langchain.vectorstores import Chroma
+from langchain.embeddings import GPT4AllEmbeddings
 from langchain.chat_models import ChatOllama
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.schema.messages import HumanMessage
 from langchain.schema import StrOutputParser
 from langchain.schema.runnable import RunnablePassthrough
-from langchain.vectorstores import Chroma
-from langchain.embeddings import GPT4AllEmbeddings
+from langchain.memory import ConversationSummaryBufferMemory
 
 llm = ChatOllama(model="mistral", temperature=0)
 
@@ -26,7 +27,7 @@ For most of your responses, use three sentences maximum and keep the answer \
 concise, avoiding excessive verbosity. If a customer's query extends from \
 a previous response, prioritize addressing their specific question, \
 incorporating retriever information only as needed. Aim for a persuasive \
-tone, but avoid excessive pressure, Exercise itmost caution to avoid \
+tone, but avoid excessive pressure, Exercise utmost caution to avoid \
 hallucinating results or providing information not grounded in retriever \
 data or the chat history. Always verify responses against the retrieved \
 context and chat history for accuracy and coherence.
