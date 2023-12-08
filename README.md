@@ -6,11 +6,20 @@ This README provides a simple guide to set up and run a LLM-RAG system utilizing
 
 Ensure that you have Ollama installed and running in the background before proceeding with the following steps.
 
+As always, create a virtual environment, activate it, and pip install the requirements
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
 ## Step 1: Create Chroma Vectorstore
 
 To initialize the Chroma vectorstore, run the following command in your terminal:
 
 ```bash
+mkdir db
 python vectorstore.py
 ```
 
