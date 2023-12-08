@@ -81,7 +81,20 @@ rag_chain = (
     | llm
 )
 
+welcome_msg = """
+Hey Sneaker Enthusiast! 👟✨ Welcome to our ultimate sneaker haven! 🌈💯 \
+I'm your trusty shopping assistant, ready to guide you on a journey to find \
+the perfect pair of kicks that match your style and preferences. Whether you're \
+after comfort, crushing on the latest trends, or hunting for a classic look, \
+I've got your back. 🚀 Let's lace up and explore the world of sneakers together! \
+👟💨 Feel free to ask me anything about our fabulous collection, and let's \
+kick off this sneaker adventure with a burst of excitement! 🎉✌️
+
+
+"""
+
 print("\n"*100)
+print(welcome_msg)
 chat_history = []
 while True:
     if len(chat_history) > 3:
