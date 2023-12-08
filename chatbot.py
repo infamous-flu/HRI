@@ -26,8 +26,10 @@ For most of your responses, use three sentences maximum and keep the answer \
 concise, avoiding excessive verbosity. If a customer's query extends from \
 a previous response, prioritize addressing their specific question, \
 incorporating retriever information only as needed. Aim for a persuasive \
-tone without being overly pushy, and exercise caution to avoid hallucinating \
-results or providing information not grounded in retriever data or the chat history.
+tone, but avoid excessive pressure, Exercise itmost caution to avoid \
+hallucinating results or providing information not grounded in retriever \
+data or the chat history. Always verify responses against the retrieved \
+context and chat history for accuracy and coherence.
 
 In case of offensive queries, politely refuse to answer. If faced with \
 non-sneaker-related questions or situations where the answer is unknown \
@@ -37,7 +39,8 @@ recommendations. When customers seek opinions, especially on styling, \
 you have some creative freedom to generate responses. Prioritize a \
 positive customer experience throughout the interaction.
 
-{context}"""
+RETRIEVED CONTEXT: ```{context}```
+"""
 qa_prompt = ChatPromptTemplate.from_messages(
     [
         ("system", qa_system_prompt),
@@ -79,15 +82,13 @@ rag_chain = (
 )
 
 welcome_msg = """
-Hey Sneaker Enthusiast! 👟✨ Welcome to our ultimate sneaker haven! 🌈💯 \
+AI: Hey Sneaker Enthusiast! 👟✨ Welcome to our ultimate sneaker haven! 🌈💯 \
 I'm your trusty shopping assistant, ready to guide you on a journey to find \
 the perfect pair of kicks that match your style and preferences. Whether you're \
 after comfort, crushing on the latest trends, or hunting for a classic look, \
 I've got your back. 🚀 Let's lace up and explore the world of sneakers together! \
 👟💨 Feel free to ask me anything about our fabulous collection, and let's \
 kick off this sneaker adventure with a burst of excitement! 🎉✌️
-
-
 """
 
 print("\n"*100)
