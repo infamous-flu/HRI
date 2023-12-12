@@ -8,7 +8,7 @@ from langchain.prompts import (
     MessagesPlaceholder,
     HumanMessagePromptTemplate
 )
-from langchain.schema import StrOutputParser, HumanMessage
+from langchain.schema import StrOutputParser
 from langchain.schema.runnable import RunnablePassthrough
 from langchain.memory import ConversationSummaryBufferMemory
 from pprint import pprint
@@ -101,6 +101,7 @@ kick off this sneaker adventure with a burst of excitement! 🎉✌️
 memory = ConversationSummaryBufferMemory(
     llm=llm, max_token_limit=100, return_messages=True
 )
+memory.save_context({"input": ""}, {"output": welcome_msg})
 
 print("\n"*100)
 print(welcome_msg)
