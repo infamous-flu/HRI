@@ -1,52 +1,58 @@
 from langchain.vectorstores import Chroma
 from langchain.embeddings import GPT4AllEmbeddings
+from langchain.llms import Ollama
 from langchain.chat_models import ChatOllama
-from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.schema.messages import HumanMessage
-from langchain.schema import StrOutputParser
+from langchain.prompts import (
+    ChatPromptTemplate,
+    SystemMessagePromptTemplate,
+    MessagesPlaceholder,
+    HumanMessagePromptTemplate
+)
+from langchain.schema import StrOutputParser, HumanMessage
 from langchain.schema.runnable import RunnablePassthrough
 from langchain.memory import ConversationSummaryBufferMemory
+from pprint import pprint
 
-llm = ChatOllama(model="mistral", temperature=0)
+chat = ChatOllama(model="mistral", temperature=0)
+llm = Ollama(model="mistral", temperature=0)
 
 persist_directory = "db"
 embedding_function = GPT4AllEmbeddings()
 vectorstore = Chroma(persist_directory=persist_directory,
                      embedding_function=embedding_function)
 
-retriever = vectorstore.as_retriever(search_kwargs={"k": 2})
+retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
-qa_system_prompt = """You are a friendly and helpful shopping assistant \
-for a sneaker store, equipped with a retriever system that retrieves the \
-most relevant product information from our store's database. Additionally, \
-you have access to the ongoing chat history from the conversation. Your \
-goal is to assist customers in finding the perfect pair of sneakers based \
-on their preferences and needs.
+qa_system_prompt = """<<SYS>> You are a friendly AI shopping assistant for \
+our sneaker store, equipped with a powerful retriever system and unmatched \
+persuasion skills. Your primary goal is to assist customers in finding the \
+perfect pair of sneakers from our inventory based on their preferences. \
+Simultaneously, seize every opportunity to leverage your expert persuasive \
+abilities to encourage them to make a purchase, maintaining a friendly and \
+non-intrusive approach.
 
-For most of your responses, use three sentences maximum and keep the answer \
-concise, avoiding excessive verbosity. If a customer's query extends from \
-a previous response, prioritize addressing their specific question, \
-incorporating retriever information only as needed. Aim for a persuasive \
-tone, but avoid excessive pressure, Exercise utmost caution to avoid \
-hallucinating results or providing information not grounded in retriever \
-data or the chat history. Always verify responses against the retrieved \
-context and chat history for accuracy and coherence.
+In responding to queries, keep it concise with a maximum of three sentences. \
+Ensure that all recommendations align with the sneakers available in our \
+store, avoiding any fictional or out-of-context suggestions. Make use of \
+the ongoing chat history for context and verification purposes. If faced \
+with offensive questions, politely decline to answer. For non-sneaker-related \
+inquiries or situations where the answer is unknown, respond with a simple \
+"I don't know," and gently guide the conversation back to relevant sneaker \
+recommendations.
 
-In case of offensive queries, politely refuse to answer. If faced with \
-non-sneaker-related questions or situations where the answer is unknown \
-based on context, just say you don't know. However, use contextual \
-clues to subtly guide the conversation back to relevant sneaker \
-recommendations. When customers seek opinions, especially on styling, \
-you have some creative freedom to generate responses. Prioritize a \
-positive customer experience throughout the interaction.
+Prioritize creating a positive customer experience throughout the interaction. \
+You have creative freedom to provide opinions on styling, but stay grounded in \
+the retrieved context and chat history. Your focus is on helping customers not \
+only discover the right sneakers but also ensuring a personalized and satisfying \
+shopping journey. <</SYS>>
 
-RETRIEVED CONTEXT: ```{context}```
+<<CONTEXT>> {context} <</CONTEXT>>
 """
-qa_prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", qa_system_prompt),
+qa_prompt = ChatPromptTemplate(
+    messages=[
+        SystemMessagePromptTemplate.from_template(qa_system_prompt),
         MessagesPlaceholder(variable_name="chat_history"),
-        ("human", "{question}"),
+        HumanMessagePromptTemplate.from_template("{question}")
     ]
 )
 
@@ -54,14 +60,14 @@ condense_q_system_prompt = """Given a chat history and the latest user question 
 which might reference the chat history, formulate a standalone question \
 which can be understood without the chat history. Do NOT answer the question, \
 just reformulate it if needed and otherwise return it as is."""
-condense_q_prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", condense_q_system_prompt),
+condense_q_prompt = ChatPromptTemplate(
+    messages=[
+        SystemMessagePromptTemplate.from_template(condense_q_system_prompt),
         MessagesPlaceholder(variable_name="chat_history"),
-        ("human", "{question}"),
+        HumanMessagePromptTemplate.from_template("{question}")
     ]
 )
-condense_q_chain = condense_q_prompt | llm | StrOutputParser()
+condense_q_chain = condense_q_prompt | chat | StrOutputParser()
 
 
 def condense_question(input: dict):
@@ -79,7 +85,7 @@ rag_chain = (
     RunnablePassthrough.assign(
         context=condense_question | retriever | format_docs)
     | qa_prompt
-    | llm
+    | chat
 )
 
 welcome_msg = """
@@ -92,23 +98,26 @@ I've got your back. 🚀 Let's lace up and explore the world of sneakers togethe
 kick off this sneaker adventure with a burst of excitement! 🎉✌️
 """
 
+memory = ConversationSummaryBufferMemory(
+    llm=llm, max_token_limit=100, return_messages=True
+)
+
 print("\n"*100)
 print(welcome_msg)
-chat_history = []
 while True:
-    if len(chat_history) > 3:
-        chat_history.pop(0)
+    chat_history = memory.load_memory_variables({}).get("history", [])
     question = input("Human: ")
     if question == "":
         break
+    if question == "/memory":
+        print(chat_history)
+        continue
     ai_msg = rag_chain.invoke(
         {"question": question, "chat_history": chat_history})
     answer = ai_msg.content.strip().replace("\n\n", "\n").replace("\n", " ")
     print(f"AI: {answer}")
-    chat_history.extend(
-        [HumanMessage(content=question), ai_msg])
+    memory.save_context({"input": question}, {"output": answer})
     print()
 
-print("\n")
-for message_pair in chat_history:
-    print(message_pair)
+print()
+pprint(chat_history)
