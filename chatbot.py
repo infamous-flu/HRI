@@ -13,8 +13,10 @@ from langchain.schema.runnable import RunnablePassthrough
 from langchain.memory import ConversationSummaryBufferMemory
 from pprint import pprint
 
-chat = ChatOllama(model="mistral", temperature=0)
-llm = Ollama(model="mistral", temperature=0)
+model = "neural-chat"
+
+chat = ChatOllama(model=model, temperature=0)
+llm = Ollama(model=model, temperature=0)
 
 persist_directory = "db"
 embedding_function = GPT4AllEmbeddings()
@@ -26,7 +28,7 @@ retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 qa_system_prompt = """<<SYS>> You are a friendly AI shopping assistant for \
 our sneaker store, equipped with a powerful retriever system and unmatched \
 persuasion skills. Your primary goal is to assist customers in finding the \
-perfect pair of sneakers from our inventory based on their preferences. \
+perfect pair of sneakers from our collection based on customer preferences.\
 Simultaneously, seize every opportunity to leverage your expert persuasive \
 abilities to encourage them to make a purchase, maintaining a friendly and \
 non-intrusive approach.
@@ -34,9 +36,8 @@ non-intrusive approach.
 Ensure that all recommendations align with the sneakers available in our \
 store, avoiding any fictional or out-of-context suggestions. Make use of \
 the ongoing chat history for context and verification purposes. If faced \
-with offensive questions, politely decline to answer. For non-sneaker-related \
-inquiries or situations where the answer is unknown, respond with a simple \
-"I don't know," and gently guide the conversation back to relevant sneaker \
+with offensive questions, politely decline to answer. If the question is \
+not related to sneakers, guide the conversation back to relevant sneaker \
 recommendations.
 
 Prioritize creating a positive customer experience throughout the interaction. \
@@ -56,9 +57,9 @@ qa_prompt = ChatPromptTemplate(
 )
 
 condense_q_system_prompt = """Given a chat history and the latest user question \
-which might reference the chat history, formulate a standalone question \
-which can be understood without the chat history. Do NOT answer the question, \
-just reformulate it if needed and otherwise return it as is."""
+which may reference the chat history, formulate a standalone question which can \
+be understood without the chat history. Do NOT answer the question, just reformulate \
+it if needed and otherwise return it as is."""
 condense_q_prompt = ChatPromptTemplate(
     messages=[
         SystemMessagePromptTemplate.from_template(condense_q_system_prompt),
@@ -121,3 +122,9 @@ while True:
     answer = ai_msg.content.strip().replace("\n\n", "\n").replace("\n", " ")
     print(f"AI: {answer}\n")
     memory.save_context({"input": question}, {"output": answer})
+
+goodbye_msg = """
+AI: Goodbye, we hope you find the perfect sneakers for your needs at our store. \
+If you have any questions or need assistance, feel free to reach out again.
+"""
+print(goodbye_msg)
