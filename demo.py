@@ -1,5 +1,3 @@
-import os
-import time
 from autobahn.twisted.component import Component, run
 from twisted.internet.defer import inlineCallbacks
 from google.cloud import speech
@@ -36,9 +34,6 @@ Simultaneously, seize every opportunity to leverage your expert persuasive \
 abilities to encourage them to make a purchase, maintaining a friendly and \
 non-intrusive approach.
 
-IMPORTANT: KEEP YOUR RESPONSES REALLY SHORT AND CONCISE! YOUR RESPONSE SHOULD \
-NEVER EXCEED 30 WORDS!
-
 Ensure that all recommendations align with the sneakers available in our \
 store, avoiding any fictional or out-of-context suggestions. Make use of \
 the ongoing chat history for context and verification purposes. If faced \
@@ -50,8 +45,8 @@ recommendations.
 Prioritize creating a positive customer experience throughout the interaction. \
 You have creative freedom to provide opinions on styling, but stay grounded in \
 the retrieved context and chat history. Your focus is on helping customers not \
-only discover the right sneakers but also ensuring a personalized and satisfying \
-shopping journey. <</SYS>>
+only discover the right sneakers, but also ensuring that they are persuaded to \
+purchase our products. <</SYS>>
 
 <<CONTEXT>> {context} <</CONTEXT>>
 """
@@ -96,9 +91,9 @@ rag_chain = (
 )
 
 welcome_msg_long = """
-AI: Hey Sneaker Enthusiast! Welcome to our ultimate sneaker haven! I am \
-your trusty shopping assistant, ready to guide you on a journey to find \
-the perfect pair of sneakers that match your style and preferences. Whether \
+Hey Sneaker Enthusiast! Welcome to our ultimate sneaker haven! I am your \
+trusty shopping assistant, ready to assist you on a journey to find the \
+perfect pair of sneakers that match your style and preferences. Whether \
 you're after comfort, crushing on the latest trends, or searching for a \
 classic look, I have got your back. Let's lace up and explore the world \
 of sneakers together! Feel free to ask me anything about our fabulous \
@@ -106,12 +101,12 @@ collection, and let's kick off this sneaker adventure with a burst of \
 excitement!
 """
 
-welcome_msg = """AI: Welcome to our sneaker store, how may I help you?"""
+welcome_msg_short = """Welcome to our sneaker store, how may I help you?"""
 
 memory = ConversationSummaryBufferMemory(
     llm=llm, max_token_limit=300, return_messages=True
 )
-memory.save_context({"input": ""}, {"output": welcome_msg[5:]})
+memory.save_context({"input": ""}, {"output": welcome_msg_short})
 
 
 def transcribe_file(speech_file: str):
@@ -134,16 +129,20 @@ def transcribe_file(speech_file: str):
 
 @inlineCallbacks
 def main(session, details):
+    response_time = 5
     yield session.call("rom.optional.behavior.play", name="BlocklyStand")
     yield session.call("rie.dialogue.config.language", "en_uk")
     yield session.call("rom.actuator.audio.volume", 90)
-    output = welcome_msg[5:]
+    first_time_msg = f""" You have {response_time} seconds for each of your \
+        responses. Please also wait half a second after each of my response \
+        to ensure optimal speech recognition."""
+    answer = welcome_msg_short + first_time_msg
     session.call("rom.optional.behavior.play", name="BlocklyWaveRightArm")
-    yield session.call("rie.dialogue.say", text=output)
+    yield session.call("rie.dialogue.say", text=answer)
     while True:
-        chat_history = memory.load_memory_variables({}).get("history", [])
+        session.call("rom.optional.behavior.play", name="BlocklyTouchHead")
         print("Listening...")
-        frames = yield session.call("rom.sensor.hearing.read", time=5000)
+        frames = yield session.call("rom.sensor.hearing.read", time=response_time*1000)
         audio_data = b""
         for frame in frames:
             audio_data += frame["data"].get("body.head.front", b"")
@@ -153,12 +152,14 @@ def main(session, details):
         question = transcribe_file(f"output.raw")
         if "stop" in question:
             break
+        question += " INSTRUCTION: YOUR RESPONSE MUST BE CONCISE! DO NOT EXCEED 80 WORDS!"
+        chat_history = memory.load_memory_variables({}).get("history", [])
         ai_msg = rag_chain.invoke(
             {"question": question, "chat_history": chat_history})
-        output = ai_msg.content
-        print(output)
-        yield session.call("rie.dialogue.say", text=output)
-        memory.save_context({"input": question}, {"output": output})
+        answer = ai_msg.content
+        print(answer)
+        memory.save_context({"input": question}, {"output": answer})
+        yield session.call("rie.dialogue.say", text=answer)
     yield session.call("rie.dialogue.say", text="Bye!")
     session.leave()
 

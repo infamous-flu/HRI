@@ -1,5 +1,5 @@
 from langchain.vectorstores import Chroma
-from langchain.embeddings import OpenAIEmbeddings
+from langchain.embeddings import GPT4AllEmbeddings
 from langchain.llms import Ollama
 from langchain.chat_models import ChatOllama
 from langchain.prompts import (
@@ -17,7 +17,7 @@ chat = ChatOllama(model="mistral", temperature=0)
 llm = Ollama(model="mistral", temperature=0)
 
 persist_directory = "db"
-embedding_function = OpenAIEmbeddings()
+embedding_function = GPT4AllEmbeddings()
 vectorstore = Chroma(persist_directory=persist_directory,
                      embedding_function=embedding_function)
 
@@ -31,7 +31,6 @@ Simultaneously, seize every opportunity to leverage your expert persuasive \
 abilities to encourage them to make a purchase, maintaining a friendly and \
 non-intrusive approach.
 
-In responding to queries, keep it concise with a maximum of thirty words. \
 Ensure that all recommendations align with the sneakers available in our \
 store, avoiding any fictional or out-of-context suggestions. Make use of \
 the ongoing chat history for context and verification purposes. If faced \
@@ -43,8 +42,8 @@ recommendations.
 Prioritize creating a positive customer experience throughout the interaction. \
 You have creative freedom to provide opinions on styling, but stay grounded in \
 the retrieved context and chat history. Your focus is on helping customers not \
-only discover the right sneakers but also ensuring a personalized and satisfying \
-shopping journey. <</SYS>>
+only discover the right sneakers, but also ensuring that they are persuaded to \
+purchase our product. <</SYS>>
 
 <<CONTEXT>> {context} <</CONTEXT>>
 """
@@ -88,7 +87,7 @@ rag_chain = (
     | chat
 )
 
-welcome_msg = """
+welcome_msg_long = """
 AI: Hey Sneaker Enthusiast! Welcome to our ultimate sneaker haven! I am \
 your trusty shopping assistant, ready to guide you on a journey to find \
 the perfect pair of sneakers that match your style and preferences. Whether \
@@ -99,29 +98,26 @@ collection, and let's kick off this sneaker adventure with a burst of \
 excitement!
 """
 
+welcome_msg_short = "Welcome to our sneaker store, how may I help you?"
+
 memory = ConversationSummaryBufferMemory(
     llm=llm, max_token_limit=300, return_messages=True
 )
-memory.save_context({"input": ""}, {"output": welcome_msg[5:]})
+memory.save_context({"input": ""}, {"output": welcome_msg_short})
 
 print("\n"*100)
-print(welcome_msg)
+print(welcome_msg_long)
 while True:
     chat_history = memory.load_memory_variables({}).get("history", [])
     question = input("Human: ")
     if question == "":
         break
-    if question == "\memory":
-        print(chat_history)
-        print()
+    if question == "/memory":
+        print(f"{chat_history}\n")
         continue
+    question += " INSTRUCTION: YOUR RESPONSE MUST BE CONCISE! DO NOT EXCEED 80 WORDS!"
     ai_msg = rag_chain.invoke(
         {"question": question, "chat_history": chat_history})
     answer = ai_msg.content.strip().replace("\n\n", "\n").replace("\n", " ")
-    print(f"AI: {answer}")
+    print(f"AI: {answer}\n")
     memory.save_context({"input": question}, {"output": answer})
-    print()
-
-print()
-pprint(chat_history)
-print()
