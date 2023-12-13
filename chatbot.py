@@ -89,19 +89,20 @@ rag_chain = (
 )
 
 welcome_msg = """
-AI: Hey Sneaker Enthusiast! 👟✨ Welcome to our ultimate sneaker haven! 🌈💯 \
-I'm your trusty shopping assistant, ready to guide you on a journey to find \
-the perfect pair of kicks that match your style and preferences. Whether you're \
-after comfort, crushing on the latest trends, or hunting for a classic look, \
-I've got your back. 🚀 Let's lace up and explore the world of sneakers together! \
-👟💨 Feel free to ask me anything about our fabulous collection, and let's \
-kick off this sneaker adventure with a burst of excitement! 🎉✌️
+AI: Hey Sneaker Enthusiast! Welcome to our ultimate sneaker haven! I am \
+your trusty shopping assistant, ready to guide you on a journey to find \
+the perfect pair of sneakers that match your style and preferences. Whether \
+you're after comfort, crushing on the latest trends, or searching for a \
+classic look, I have got your back. Let's lace up and explore the world \
+of sneakers together! Feel free to ask me anything about our fabulous \
+collection, and let's kick off this sneaker adventure with a burst of \
+excitement!
 """
 
 memory = ConversationSummaryBufferMemory(
-    llm=llm, max_token_limit=100, return_messages=True
+    llm=llm, max_token_limit=300, return_messages=True
 )
-memory.save_context({"input": ""}, {"output": welcome_msg})
+memory.save_context({"input": ""}, {"output": welcome_msg[5:]})
 
 print("\n"*100)
 print(welcome_msg)
@@ -110,8 +111,9 @@ while True:
     question = input("Human: ")
     if question == "":
         break
-    if question == "/memory":
+    if question == "\memory":
         print(chat_history)
+        print()
         continue
     ai_msg = rag_chain.invoke(
         {"question": question, "chat_history": chat_history})
@@ -122,3 +124,4 @@ while True:
 
 print()
 pprint(chat_history)
+print()
