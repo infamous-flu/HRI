@@ -3,6 +3,9 @@ from pprint import pprint
 from langchain.embeddings import GPT4AllEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.schema import Document
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Assuming your CSV file has columns: "name", "brand", "price", and "description"
 csv_file_path = "data/sneakers.csv"

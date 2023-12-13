@@ -1,3 +1,7 @@
 .venv
 .vscode
+.env
 db
+**.raw
+**.wav
+helper.py

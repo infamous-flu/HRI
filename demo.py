@@ -1,5 +1,10 @@
+import os
+import time
+from autobahn.twisted.component import Component, run
+from twisted.internet.defer import inlineCallbacks
+from google.cloud import speech
 from langchain.vectorstores import Chroma
-from langchain.embeddings import OpenAIEmbeddings
+from langchain.embeddings import GPT4AllEmbeddings
 from langchain.llms import Ollama
 from langchain.chat_models import ChatOllama
 from langchain.prompts import (
@@ -17,7 +22,7 @@ chat = ChatOllama(model="mistral", temperature=0)
 llm = Ollama(model="mistral", temperature=0)
 
 persist_directory = "db"
-embedding_function = OpenAIEmbeddings()
+embedding_function = GPT4AllEmbeddings()
 vectorstore = Chroma(persist_directory=persist_directory,
                      embedding_function=embedding_function)
 
@@ -31,7 +36,9 @@ Simultaneously, seize every opportunity to leverage your expert persuasive \
 abilities to encourage them to make a purchase, maintaining a friendly and \
 non-intrusive approach.
 
-In responding to queries, keep it concise with a maximum of thirty words. \
+IMPORTANT: KEEP YOUR RESPONSES REALLY SHORT AND CONCISE! YOUR RESPONSE SHOULD \
+NEVER EXCEED 30 WORDS!
+
 Ensure that all recommendations align with the sneakers available in our \
 store, avoiding any fictional or out-of-context suggestions. Make use of \
 the ongoing chat history for context and verification purposes. If faced \
@@ -88,7 +95,7 @@ rag_chain = (
     | chat
 )
 
-welcome_msg = """
+welcome_msg_long = """
 AI: Hey Sneaker Enthusiast! Welcome to our ultimate sneaker haven! I am \
 your trusty shopping assistant, ready to guide you on a journey to find \
 the perfect pair of sneakers that match your style and preferences. Whether \
@@ -99,29 +106,73 @@ collection, and let's kick off this sneaker adventure with a burst of \
 excitement!
 """
 
+welcome_msg = """AI: Welcome to our sneaker store, how may I help you?"""
+
 memory = ConversationSummaryBufferMemory(
     llm=llm, max_token_limit=300, return_messages=True
 )
 memory.save_context({"input": ""}, {"output": welcome_msg[5:]})
 
-print("\n"*100)
-print(welcome_msg)
-while True:
-    chat_history = memory.load_memory_variables({}).get("history", [])
-    question = input("Human: ")
-    if question == "":
-        break
-    if question == "\memory":
-        print(chat_history)
-        print()
-        continue
-    ai_msg = rag_chain.invoke(
-        {"question": question, "chat_history": chat_history})
-    answer = ai_msg.content.strip().replace("\n\n", "\n").replace("\n", " ")
-    print(f"AI: {answer}")
-    memory.save_context({"input": question}, {"output": answer})
-    print()
 
-print()
-pprint(chat_history)
-print()
+def transcribe_file(speech_file: str):
+    client = speech.SpeechClient()
+    with open(speech_file, "rb") as audio_file:
+        content = audio_file.read()
+    audio = speech.RecognitionAudio(content=content)
+    config = speech.RecognitionConfig(
+        encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+        sample_rate_hertz=16000,
+        language_code="en-US",
+    )
+    response = client.recognize(config=config, audio=audio)
+    output = ""
+    for result in response.results:
+        output += result.alternatives[0].transcript
+    print(output)
+    return output
+
+
+@inlineCallbacks
+def main(session, details):
+    yield session.call("rom.optional.behavior.play", name="BlocklyStand")
+    yield session.call("rie.dialogue.config.language", "en_uk")
+    yield session.call("rom.actuator.audio.volume", 90)
+    output = welcome_msg[5:]
+    session.call("rom.optional.behavior.play", name="BlocklyWaveRightArm")
+    yield session.call("rie.dialogue.say", text=output)
+    while True:
+        chat_history = memory.load_memory_variables({}).get("history", [])
+        print("Listening...")
+        frames = yield session.call("rom.sensor.hearing.read", time=5000)
+        audio_data = b""
+        for frame in frames:
+            audio_data += frame["data"].get("body.head.front", b"")
+        with open("output.raw", "wb") as raw_file:
+            raw_file.write(audio_data)
+        print("Stopped listening")
+        question = transcribe_file(f"output.raw")
+        if "stop" in question:
+            break
+        ai_msg = rag_chain.invoke(
+            {"question": question, "chat_history": chat_history})
+        output = ai_msg.content
+        print(output)
+        yield session.call("rie.dialogue.say", text=output)
+        memory.save_context({"input": question}, {"output": output})
+    yield session.call("rie.dialogue.say", text="Bye!")
+    session.leave()
+
+
+wamp = Component(
+    transports=[{
+        "url": "ws://wamp.robotsindeklas.nl",
+                "serializers": ["msgpack"],
+                "max_retries": 0
+                }],
+    realm="rie.65799168cfc130d68e5435ce",
+)
+
+wamp.on_join(main)
+
+if __name__ == "__main__":
+    run([wamp])

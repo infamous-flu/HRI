@@ -3,3 +3,11 @@ langchain
 chromadb
 gpt4all
 transformers
+
+# NAO
+autobahn [twisted, serialization]
+pyopenssl
+service_identity
+
+# Speech Recognition
+google-cloud-speech
