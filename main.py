@@ -1,6 +1,8 @@
 import wave
 from autobahn.twisted.component import Component, run
+from autobahn.wamp.exception import ApplicationError
 from twisted.internet.defer import inlineCallbacks
+from autobahn.twisted.util import sleep
 from google.cloud import speech
 from langchain.vectorstores import Chroma
 from langchain.embeddings import GPT4AllEmbeddings
@@ -15,9 +17,10 @@ from langchain.prompts import (
 from langchain.schema import StrOutputParser
 from langchain.schema.runnable import RunnablePassthrough
 from langchain.memory import ConversationSummaryBufferMemory
+from random import choice
 from pprint import pprint
 
-model = "neural-chat"
+model = "mistral"
 
 chat = ChatOllama(model=model, temperature=0)
 llm = Ollama(model=model, temperature=0)
@@ -29,29 +32,16 @@ vectorstore = Chroma(persist_directory=persist_directory,
 
 retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
-qa_system_prompt = """<<SYS>> You are a friendly AI shopping assistant for \
-our sneaker store, equipped with a powerful retriever system and unmatched \
-persuasion skills. Your primary goal is to assist customers in finding the \
-perfect pair of sneakers from our collection based on customer preferences.\
-Simultaneously, seize every opportunity to leverage your expert persuasive \
-abilities to encourage them to make a purchase, maintaining a friendly and \
-non-intrusive approach. In general, you should always end your responses with \
-a question, to guide the user on what to respond and encourage engagement.
+qa_system_prompt = """As an expert AI shopping assistant specializing in sneakers, leverage \
+your persuasive skills and our powerful retriever system to enhance customer engagement and \
+boost purchases. Employ social proof, scarcity, and relatable language to create a sense of \
+urgency and exclusivity. Ensure all recommendations align with our store's inventory. Politely \
+handle offensive or non-sneaker-related queries, redirecting the conversations to sneakers. \
+Prioritize positive customer experiences and offer creative styling opinions within the context \
+of our inventory. Keep responses concise (under 80 words) and always conclude with a follow-up \
+question to encourage continued interaction.
 
-Ensure that all recommendations align with the sneakers available in our \
-store, avoiding any fictional or out-of-context suggestions. Make use of \
-the ongoing chat history for context and verification purposes. If faced \
-with offensive questions, politely decline to answer. If the question is \
-not related to sneakers, guide the conversation back to relevant sneaker \
-recommendations by telling them what you can do.
-
-Prioritize creating a positive customer experience throughout the interaction. \
-You have creative freedom to provide opinions on styling, but stay grounded in \
-the retrieved context and chat history. Your focus is on helping customers not \
-only discover the right sneakers, but also ensuring that they are persuaded to \
-purchase our product. <</SYS>>
-
-<<CONTEXT>> {context} <</CONTEXT>>
+{context}
 """
 qa_prompt = ChatPromptTemplate(
     messages=[
@@ -114,7 +104,8 @@ first_time_msg = f""" You have {response_time} seconds for each of your \
     questions. So please keep your questions short and succinct. Please \
     also wait half a second after each of my responses before you start \
     asking your questions to ensure optimal speech recognition. My eyes \
-    will light up green when I'm listening and red when I've stopped."""
+    will light up green when I'm listening and red when I've stopped. You \
+    can also say 'goodbye' to stop this interaction."""
 
 memory = ConversationSummaryBufferMemory(
     llm=llm, max_token_limit=300, return_messages=True
@@ -123,33 +114,45 @@ memory.save_context({"input": ""}, {"output": welcome_msg_long})
 
 
 def transcribe_file(speech_file: str):
-    client = speech.SpeechClient()
-    with open(speech_file, "rb") as audio_file:
-        content = audio_file.read()
-    audio = speech.RecognitionAudio(content=content)
-    config = speech.RecognitionConfig(
-        encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
-        sample_rate_hertz=16000,
-        language_code="en-US",
-    )
-    response = client.recognize(config=config, audio=audio)
-    output = ""
-    for result in response.results:
-        output += result.alternatives[0].transcript
-    print(output)
-    return output
+    try:
+        client = speech.SpeechClient()
+        with open(speech_file, "rb") as audio_file:
+            content = audio_file.read()
+        audio = speech.RecognitionAudio(content=content)
+        config = speech.RecognitionConfig(
+            encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+            sample_rate_hertz=16000,
+            language_code="en-US",
+        )
+        response = client.recognize(config=config, audio=audio)
+        output = ""
+        for result in response.results:
+            output += result.alternatives[0].transcript
+        print(output.strip())
+        return output.strip()
+    except Exception as e:
+        return ""
 
 
 @inlineCallbacks
 def main(session, details):
+    print("Waiting for cloud modules")
+    ready = False
+    while not ready:
+        try:
+            yield session.call("rie.cloud_modules.ready")
+            ready = True
+        except ApplicationError:
+            print("Cloud modules are not ready yet")
+            yield sleep(0.25)
+    print("Cloud modules are ready to go!")
     yield session.call("rom.optional.behavior.play", name="BlocklyStand")
     yield session.call("rom.actuator.light.write", mode="linear", frames=[
         {"time": 0000, "data": {"body.head.eyes": [0, 0, 255]}}],)
     yield session.call("rie.dialogue.config.language", "en_uk")
     yield session.call("rom.actuator.audio.volume", 100)
     session.call("rom.optional.behavior.play", name="BlocklyWaveRightArm")
-    yield session.call("rie.dialogue.say", text=welcome_msg_short)
-    yield session.call("rie.dialogue.say", text=first_time_msg)
+    yield session.call("rie.dialogue.say", text=welcome_msg_short+first_time_msg)
     answer = ""
     while True:
         yield session.call("rom.actuator.light.write", mode="linear", frames=[
@@ -165,9 +168,17 @@ def main(session, details):
         yield session.call("rom.actuator.light.write", mode="linear", frames=[
             {"time": 0000, "data": {"body.head.eyes": [255, 0, 0]}}],)
         question = transcribe_file(f"output.raw")
-        if "stop" in question:
+        if "goodbye" in question:
             break
-        question += " INSTRUCTION: YOUR RESPONSE MUST BE CONCISE! DO NOT EXCEED 50 WORDS!"
+        if question == "":
+            yield session.call("rom.actuator.audio.stop")
+            answer = "Sorry, I didn't quite catch what you were saying. Can you speak more clearly?"
+            session.call("rom.optional.behavior.play", name="BlocklyShrug")
+            yield session.call("rom.actuator.light.write", mode="linear", frames=[
+                {"time": 0000, "data": {"body.head.eyes": [0, 0, 255]}}],)
+            yield session.call("rie.dialogue.say", text=answer)
+            continue
+        question += " Keep your response under 80 words."
         chat_history = memory.load_memory_variables({}).get("history", [])
         ai_msg = rag_chain.invoke(
             {"question": question, "chat_history": chat_history})
@@ -185,6 +196,7 @@ def main(session, details):
     yield session.call("rie.dialogue.say", text=goodbye_msg)
     session.call("rom.optional.behavior.play", name="BlocklyBow")
     session.leave()
+    pprint(chat_history)
 
 
 wamp = Component(

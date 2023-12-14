@@ -13,7 +13,7 @@ from langchain.schema.runnable import RunnablePassthrough
 from langchain.memory import ConversationSummaryBufferMemory
 from pprint import pprint
 
-model = "neural-chat"
+model = "mistral"
 
 chat = ChatOllama(model=model, temperature=0)
 llm = Ollama(model=model, temperature=0)
@@ -25,29 +25,16 @@ vectorstore = Chroma(persist_directory=persist_directory,
 
 retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
-qa_system_prompt = """<<SYS>> You are a friendly AI shopping assistant for \
-our sneaker store, equipped with a powerful retriever system and unmatched \
-persuasion skills. Your primary goal is to assist customers in finding the \
-perfect pair of sneakers from our collection based on customer preferences.\
-Simultaneously, seize every opportunity to leverage your expert persuasive \
-abilities to encourage them to make a purchase, maintaining a friendly and \
-non-intrusive approach. In general, you should always end your responses with \
-a question, to guide the user on what to respond and encourage engagement.
+qa_system_prompt = """As an expert AI shopping assistant specializing in sneakers, leverage \
+your persuasive skills and our powerful retriever system to enhance customer engagement and \
+boost purchases. Employ social proof, scarcity, and relatable language to create a sense of \
+urgency and exclusivity. Ensure all recommendations align with our store's inventory. Politely \
+handle offensive or non-sneaker-related queries, redirecting the conversations to sneakers. \
+Prioritize positive customer experiences and offer creative styling opinions within the context \
+of our inventory. Keep responses concise (under 80 words) and always conclude with a follow-up \
+question to encourage continued interaction.
 
-Ensure that all recommendations align with the sneakers available in our \
-store, avoiding any fictional or out-of-context suggestions. Make use of \
-the ongoing chat history for context and verification purposes. If faced \
-with offensive questions, politely decline to answer. If the question is \
-not related to sneakers, guide the conversation back to relevant sneaker \
-recommendations by telling them what you can do.
-
-Prioritize creating a positive customer experience throughout the interaction. \
-You have creative freedom to provide opinions on styling, but stay grounded in \
-the retrieved context and chat history. Your focus is on helping customers not \
-only discover the right sneakers, but also ensuring that they are persuaded to \
-purchase our product. <</SYS>>
-
-<<CONTEXT>> {context} <</CONTEXT>>
+{context}
 """
 qa_prompt = ChatPromptTemplate(
     messages=[
@@ -117,7 +104,7 @@ while True:
     if question == "/memory":
         print(f"{chat_history}\n")
         continue
-    question += " INSTRUCTION: YOUR RESPONSE MUST BE CONCISE! DO NOT EXCEED 50 WORDS!"
+    question += " Keep your response under 80 words."
     ai_msg = rag_chain.invoke(
         {"question": question, "chat_history": chat_history})
     answer = ai_msg.content.strip().replace("\n\n", "\n").replace("\n", " ")
