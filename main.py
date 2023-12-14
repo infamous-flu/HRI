@@ -133,7 +133,7 @@ def main(session, details):
     response_time = 8
     yield session.call("rom.optional.behavior.play", name="BlocklyStand")
     yield session.call("rie.dialogue.config.language", "en_uk")
-    yield session.call("rom.actuator.audio.volume", 90)
+    yield session.call("rom.actuator.audio.volume", 100)
     first_time_msg = f""" You have {response_time} seconds for each of your \
         responses. Please also wait half a second after each of my response \
         to ensure optimal speech recognition."""
@@ -175,7 +175,7 @@ wamp = Component(
                 "serializers": ["msgpack"],
                 "max_retries": 0
                 }],
-    realm="rie.65799168cfc130d68e5435ce",
+    realm="rie.657ac934cfc130d68e543e5b",
 )
 
 wamp.on_join(main)
