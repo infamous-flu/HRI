@@ -38,7 +38,7 @@ store, avoiding any fictional or out-of-context suggestions. Make use of \
 the ongoing chat history for context and verification purposes. If faced \
 with offensive questions, politely decline to answer. If the question is \
 not related to sneakers, guide the conversation back to relevant sneaker \
-recommendations.
+recommendations by telling them what you can do.
 
 Prioritize creating a positive customer experience throughout the interaction. \
 You have creative freedom to provide opinions on styling, but stay grounded in \
@@ -116,7 +116,7 @@ while True:
     if question == "/memory":
         print(f"{chat_history}\n")
         continue
-    question += " INSTRUCTION: YOUR RESPONSE MUST BE CONCISE! DO NOT EXCEED 80 WORDS!"
+    question += " INSTRUCTION: YOUR RESPONSE MUST BE CONCISE! DO NOT EXCEED 50 WORDS!"
     ai_msg = rag_chain.invoke(
         {"question": question, "chat_history": chat_history})
     answer = ai_msg.content.strip().replace("\n\n", "\n").replace("\n", " ")

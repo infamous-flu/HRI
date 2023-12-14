@@ -1,3 +1,4 @@
+import wave
 from autobahn.twisted.component import Component, run
 from twisted.internet.defer import inlineCallbacks
 from google.cloud import speech
@@ -34,14 +35,15 @@ persuasion skills. Your primary goal is to assist customers in finding the \
 perfect pair of sneakers from our collection based on customer preferences.\
 Simultaneously, seize every opportunity to leverage your expert persuasive \
 abilities to encourage them to make a purchase, maintaining a friendly and \
-non-intrusive approach.
+non-intrusive approach. In general, you should always end your responses with \
+a question, to guide the user on what to respond and encourage engagement.
 
 Ensure that all recommendations align with the sneakers available in our \
 store, avoiding any fictional or out-of-context suggestions. Make use of \
 the ongoing chat history for context and verification purposes. If faced \
 with offensive questions, politely decline to answer. If the question is \
 not related to sneakers, guide the conversation back to relevant sneaker \
-recommendations.
+recommendations by telling them what you can do.
 
 Prioritize creating a positive customer experience throughout the interaction. \
 You have creative freedom to provide opinions on styling, but stay grounded in \
@@ -102,12 +104,22 @@ collection, and let's kick off this sneaker adventure with a burst of \
 excitement!
 """
 
-welcome_msg_short = """Welcome to our sneaker store, how may I help you?"""
+welcome_msg_short = """Welcome to our sneaker store! I'm your NAO shopping \
+assistant. I can help you find the perfect sneaker, answer your questions, \
+and provide personalized recommendations. Ask me anything about sneakers!
+"""
+
+response_time = 6
+first_time_msg = f""" You have {response_time} seconds for each of your \
+    questions. So please keep your questions short and succinct. Please \
+    also wait half a second after each of my responses before you start \
+    asking your questions to ensure optimal speech recognition. My eyes \
+    will light up green when I'm listening and red when I've stopped."""
 
 memory = ConversationSummaryBufferMemory(
     llm=llm, max_token_limit=300, return_messages=True
 )
-memory.save_context({"input": ""}, {"output": welcome_msg_short})
+memory.save_context({"input": ""}, {"output": welcome_msg_long})
 
 
 def transcribe_file(speech_file: str):
@@ -130,18 +142,18 @@ def transcribe_file(speech_file: str):
 
 @inlineCallbacks
 def main(session, details):
-    response_time = 8
     yield session.call("rom.optional.behavior.play", name="BlocklyStand")
+    yield session.call("rom.actuator.light.write", mode="linear", frames=[
+        {"time": 0000, "data": {"body.head.eyes": [0, 0, 255]}}],)
     yield session.call("rie.dialogue.config.language", "en_uk")
     yield session.call("rom.actuator.audio.volume", 100)
-    first_time_msg = f""" You have {response_time} seconds for each of your \
-        responses. Please also wait half a second after each of my response \
-        to ensure optimal speech recognition."""
-    answer = welcome_msg_short + first_time_msg
     session.call("rom.optional.behavior.play", name="BlocklyWaveRightArm")
-    yield session.call("rie.dialogue.say", text=answer)
+    yield session.call("rie.dialogue.say", text=welcome_msg_short)
+    yield session.call("rie.dialogue.say", text=first_time_msg)
+    answer = ""
     while True:
-        session.call("rom.optional.behavior.play", name="BlocklyTouchHead")
+        yield session.call("rom.actuator.light.write", mode="linear", frames=[
+            {"time": 0000, "data": {"body.head.eyes": [0, 255, 0]}}],)
         print("Listening...")
         frames = yield session.call("rom.sensor.hearing.read", time=response_time*1000)
         audio_data = b""
@@ -150,22 +162,28 @@ def main(session, details):
         with open("output.raw", "wb") as raw_file:
             raw_file.write(audio_data)
         print("Stopped listening")
+        yield session.call("rom.actuator.light.write", mode="linear", frames=[
+            {"time": 0000, "data": {"body.head.eyes": [255, 0, 0]}}],)
         question = transcribe_file(f"output.raw")
         if "stop" in question:
             break
-        question += " INSTRUCTION: YOUR RESPONSE MUST BE CONCISE! DO NOT EXCEED 80 WORDS!"
+        question += " INSTRUCTION: YOUR RESPONSE MUST BE CONCISE! DO NOT EXCEED 50 WORDS!"
         chat_history = memory.load_memory_variables({}).get("history", [])
         ai_msg = rag_chain.invoke(
             {"question": question, "chat_history": chat_history})
         answer = ai_msg.content
         print(answer)
         memory.save_context({"input": question}, {"output": answer})
+        yield session.call("rom.actuator.light.write", mode="linear", frames=[
+            {"time": 0000, "data": {"body.head.eyes": [0, 0, 255]}}],)
         yield session.call("rie.dialogue.say", text=answer)
+    yield session.call("rom.actuator.light.write", mode="linear", frames=[{"time": 0000, "data": {"body.head.eyes": [0, 0, 255]}}],)
     goodbye_msg = """Goodbye! I hope you find the perfect sneakers for your needs \
     at our store. If you have any more questions or need further assistance, feel \
     free to reach out again.
     """
     yield session.call("rie.dialogue.say", text=goodbye_msg)
+    session.call("rom.optional.behavior.play", name="BlocklyBow")
     session.leave()
 
 
