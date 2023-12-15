@@ -94,12 +94,13 @@ collection, and let's kick off this sneaker adventure with a burst of \
 excitement!
 """
 
-welcome_msg_short = """Welcome to our sneaker store! I'm your NAO shopping \
-assistant. I can help you find the perfect sneaker, answer your questions, \
-and provide personalized recommendations. Ask me anything about sneakers!
+welcome_msg_short = """I am your NAO shopping assistant. I can help you find the \
+perfect sneaker, answer your questions and provide personalized recommendations. \
+You can ask me any natural language question related to sneakers in English. \
+Let's get started!
 """
 
-response_time = 6
+response_time = 10
 first_time_msg = f""" You have {response_time} seconds for each of your \
     questions. So please keep your questions short and succinct. Please \
     also wait half a second after each of my responses before you start \
@@ -110,7 +111,8 @@ first_time_msg = f""" You have {response_time} seconds for each of your \
 memory = ConversationSummaryBufferMemory(
     llm=llm, max_token_limit=300, return_messages=True
 )
-memory.save_context({"input": ""}, {"output": welcome_msg_long})
+memory.save_context(
+    {"input": ""}, {"output": welcome_msg_long})
 
 
 def transcribe_file(speech_file: str):
@@ -152,7 +154,8 @@ def main(session, details):
     yield session.call("rie.dialogue.config.language", "en_uk")
     yield session.call("rom.actuator.audio.volume", 100)
     session.call("rom.optional.behavior.play", name="BlocklyWaveRightArm")
-    yield session.call("rie.dialogue.say", text=welcome_msg_short+first_time_msg)
+    yield session.call("rie.dialogue.say", text="Welcome to our sneaker store!")
+    yield session.call("rie.dialogue.say_animated", text=welcome_msg_short+first_time_msg)
     answer = ""
     while True:
         yield session.call("rom.actuator.light.write", mode="linear", frames=[
@@ -178,7 +181,7 @@ def main(session, details):
                 {"time": 0000, "data": {"body.head.eyes": [0, 0, 255]}}],)
             yield session.call("rie.dialogue.say", text=answer)
             continue
-        question += " Keep your response under 80 words."
+        question += " Keep your response concise and under 40 words."
         chat_history = memory.load_memory_variables({}).get("history", [])
         ai_msg = rag_chain.invoke(
             {"question": question, "chat_history": chat_history})
@@ -187,7 +190,8 @@ def main(session, details):
         memory.save_context({"input": question}, {"output": answer})
         yield session.call("rom.actuator.light.write", mode="linear", frames=[
             {"time": 0000, "data": {"body.head.eyes": [0, 0, 255]}}],)
-        yield session.call("rie.dialogue.say", text=answer)
+        session.call("rom.optional.behavior.play", name="BlocklyWaveRightArm")
+        yield session.call("rie.dialogue.say_animated", text=answer)
     yield session.call("rom.actuator.light.write", mode="linear", frames=[{"time": 0000, "data": {"body.head.eyes": [0, 0, 255]}}],)
     goodbye_msg = """Goodbye! I hope you find the perfect sneakers for your needs \
     at our store. If you have any more questions or need further assistance, feel \
@@ -205,7 +209,7 @@ wamp = Component(
                 "serializers": ["msgpack"],
                 "max_retries": 0
                 }],
-    realm="rie.657c31e8cfc130d68e544a5e",
+    realm="rie.657c29b3cfc130d68e544a00",
 )
 
 wamp.on_join(main)
