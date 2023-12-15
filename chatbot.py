@@ -102,7 +102,7 @@ while True:
     if question == "":
         break
     if question == "/memory":
-        print(f"{chat_history}\n")
+        pprint(f"{chat_history}\n")
         continue
     question += " Keep your response under 80 words."
     ai_msg = rag_chain.invoke(
