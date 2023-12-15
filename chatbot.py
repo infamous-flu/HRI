@@ -90,7 +90,7 @@ excitement!
 welcome_msg_short = "Welcome to our sneaker store, how may I help you?"
 
 memory = ConversationSummaryBufferMemory(
-    llm=llm, max_token_limit=300, return_messages=True
+    llm=llm, max_token_limit=500, return_messages=True
 )
 memory.save_context({"input": ""}, {"output": welcome_msg_short})
 

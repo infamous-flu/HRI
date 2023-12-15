@@ -1,4 +1,4 @@
-import wave
+import json
 from autobahn.twisted.component import Component, run
 from autobahn.wamp.exception import ApplicationError
 from twisted.internet.defer import inlineCallbacks
@@ -22,7 +22,7 @@ from pprint import pprint
 
 model = "mistral"
 
-chat = ChatOllama(model=model, temperature=0)
+chat = ChatOllama(model=model, temperature=0.1)
 llm = Ollama(model=model, temperature=0)
 
 persist_directory = "db"
@@ -94,25 +94,22 @@ collection, and let's kick off this sneaker adventure with a burst of \
 excitement!
 """
 
-welcome_msg_short = """I am your NAO shopping assistant. I can help you find the \
-perfect sneaker, answer your questions and provide personalized recommendations. \
-You can ask me any natural language question related to sneakers in English. \
-Let's get started!
+welcome_msg_short = """I am your NAO shopping assistant. Feel free to ask me \
+any questions you have about our fabulous collection. I can help you find the \
+perfect pair of sneakers that match your style and preferences.
 """
 
-response_time = 10
-first_time_msg = f""" You have {response_time} seconds for each of your \
-    questions. So please keep your questions short and succinct. Please \
-    also wait half a second after each of my responses before you start \
-    asking your questions to ensure optimal speech recognition. My eyes \
-    will light up green when I'm listening and red when I've stopped. You \
-    can also say 'goodbye' to stop this interaction."""
+first_time_msg = f""" You have 10 seconds for each of your questions, please \
+keep your questions short and concise. Wait half a second after each of my \
+responses before asking your question to ensure optimal speech recognition. \
+My eyes will light up green when I'm listening and red when I've stopped. \
+Say 'goodbye' if you want to stop the interaction"""
 
 memory = ConversationSummaryBufferMemory(
-    llm=llm, max_token_limit=300, return_messages=True
+    llm=llm, max_token_limit=500, return_messages=True
 )
 memory.save_context(
-    {"input": ""}, {"output": welcome_msg_long})
+    {"input": ""}, {"output": "Welcome to our sneaker store, how may I help you?"})
 
 
 def transcribe_file(speech_file: str):
@@ -138,6 +135,7 @@ def transcribe_file(speech_file: str):
 
 @inlineCallbacks
 def main(session, details):
+    print("Starting up...")
     print("Waiting for cloud modules")
     ready = False
     while not ready:
@@ -161,7 +159,7 @@ def main(session, details):
         yield session.call("rom.actuator.light.write", mode="linear", frames=[
             {"time": 0000, "data": {"body.head.eyes": [0, 255, 0]}}],)
         print("Listening...")
-        frames = yield session.call("rom.sensor.hearing.read", time=response_time*1000)
+        frames = yield session.call("rom.sensor.hearing.read", time=8000)
         audio_data = b""
         for frame in frames:
             audio_data += frame["data"].get("body.head.front", b"")
@@ -171,17 +169,17 @@ def main(session, details):
         yield session.call("rom.actuator.light.write", mode="linear", frames=[
             {"time": 0000, "data": {"body.head.eyes": [255, 0, 0]}}],)
         question = transcribe_file(f"output.raw")
-        if "goodbye" in question:
+        if "goodbye" in question or "bye" in question:
             break
         if question == "":
             yield session.call("rom.actuator.audio.stop")
-            answer = "Sorry, I didn't quite catch what you were saying. Can you speak more clearly?"
+            answer = "Sorry, I didn't quite catch what you were saying. Can you speak louder and more clearly?"
             session.call("rom.optional.behavior.play", name="BlocklyShrug")
             yield session.call("rom.actuator.light.write", mode="linear", frames=[
                 {"time": 0000, "data": {"body.head.eyes": [0, 0, 255]}}],)
             yield session.call("rie.dialogue.say", text=answer)
             continue
-        question += " Keep your response concise and under 40 words."
+        question += " Keep your response under 80 words."
         chat_history = memory.load_memory_variables({}).get("history", [])
         ai_msg = rag_chain.invoke(
             {"question": question, "chat_history": chat_history})
@@ -197,7 +195,7 @@ def main(session, details):
     at our store. If you have any more questions or need further assistance, feel \
     free to reach out again.
     """
-    yield session.call("rie.dialogue.say", text=goodbye_msg)
+    yield session.call("rie.dialogue.say_animated", text=goodbye_msg)
     session.call("rom.optional.behavior.play", name="BlocklyBow")
     session.leave()
     pprint(chat_history)
