@@ -84,18 +84,13 @@ rag_chain = (
     | StrOutputParser()
 )
 
-welcome_msg_long = """
-Hey Sneaker Enthusiast! Welcome to our ultimate sneaker haven! I am your \
-trusty shopping assistant, ready to assist you on a journey to find the \
-perfect pair of sneakers that match your style and preferences. Whether \
-you're after comfort, crushing on the latest trends, or searching for a \
-classic look, I have got your back. Let's lace up and explore the world \
-of sneakers together! Feel free to ask me anything about our fabulous \
-collection, and let's kick off this sneaker adventure with a burst of \
-excitement!
-"""
+#################################################################################
 
-welcome_msg_short = """I am your NAO shopping assistant. Feel free to ask me \
+# TODO: WRITE A BETTER WELCOME MESSAGE AND FIRST TIME MESSAGE!
+
+#################################################################################
+
+welcome_msg = """I am your NAO shopping assistant. Feel free to ask me \
 any questions you have about our fabulous collection. I can help you find the \
 perfect pair of sneakers that match your style and preferences.
 """
@@ -104,13 +99,15 @@ first_time_msg = f""" You have 10 seconds for each of your questions, please \
 keep your questions short and concise. Wait half a second after each of my \
 responses before asking your question to ensure optimal speech recognition. \
 My eyes will light up green when I'm listening and red when I've stopped. \
-Say 'goodbye' if you want to stop the interaction. Do you have a question?"""
+Say "goodbye" if you want to stop the interaction. Do you have a question?"""
+
+#################################################################################
 
 memory = ConversationSummaryBufferMemory(
-    llm=llm, max_token_limit=500, return_messages=True
+    llm=llm, max_token_limit=400, return_messages=True
 )
 memory.save_context(
-    {"input": ""}, {"output": "Welcome to our sneaker store, how may I help you?"})
+    {"input": ""}, {"output": welcome_msg+first_time_msg})
 
 
 def transcribe_file(speech_file: str):
@@ -154,7 +151,7 @@ def main(session, details):
     yield session.call("rom.actuator.audio.volume", 100)
     session.call("rom.optional.behavior.play", name="BlocklyWaveRightArm")
     yield session.call("rie.dialogue.say", text="Welcome to our sneaker store!")
-    yield session.call("rie.dialogue.say_animated", text=welcome_msg_short+first_time_msg)
+    yield session.call("rie.dialogue.say_animated", text=welcome_msg+first_time_msg)
     answer = ""
     while True:
         yield session.call("rom.actuator.light.write", mode="linear", frames=[

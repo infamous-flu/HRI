@@ -77,33 +77,32 @@ rag_chain = (
     | StrOutputParser()
 )
 
-welcome_msg_long = """
-AI: Hey Sneaker Enthusiast! Welcome to our ultimate sneaker haven! I am \
-your trusty shopping assistant, ready to guide you on a journey to find \
-the perfect pair of sneakers that match your style and preferences. Whether \
-you're after comfort, crushing on the latest trends, or searching for a \
-classic look, I have got your back. Let's lace up and explore the world \
-of sneakers together! Feel free to ask me anything about our fabulous \
-collection, and let's kick off this sneaker adventure with a burst of \
-excitement!
+welcome_msg = """I am your NAO shopping assistant. Feel free to ask me \
+any questions you have about our fabulous collection. I can help you find the \
+perfect pair of sneakers that match your style and preferences."""
+
+first_time_msg = f""" You have 10 seconds for each of your questions, please \
+keep your questions short and concise. Wait half a second after each of my \
+responses before asking your question to ensure optimal speech recognition. \
+My eyes will light up green when I'm listening and red when I've stopped. \
+Say "goodbye" if you want to stop the interaction. Do you have a question?
 """
 
-welcome_msg_short = "Welcome to our sneaker store, how may I help you?"
-
 memory = ConversationSummaryBufferMemory(
-    llm=llm, max_token_limit=500, return_messages=True
+    llm=llm, max_token_limit=400, return_messages=True
 )
-memory.save_context({"input": ""}, {"output": welcome_msg_short})
+memory.save_context({"input": ""}, {"output": welcome_msg+first_time_msg})
 
 print("\n"*100)
-print(welcome_msg_long)
+print("AI: " + welcome_msg + first_time_msg)
 while True:
     chat_history = memory.load_memory_variables({}).get("history", [])
     question = input("Human: ")
     if question == "":
         break
     if question == "/memory":
-        pprint(f"{chat_history}\n")
+        pprint(f"{chat_history}")
+        print()
         continue
     question += " Keep your response under 80 words."
     ai_msg = rag_chain.invoke(
