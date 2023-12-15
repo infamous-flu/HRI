@@ -81,6 +81,7 @@ rag_chain = (
         context=condense_question | retriever | format_docs)
     | qa_prompt
     | chat
+    | StrOutputParser()
 )
 
 welcome_msg_long = """
@@ -181,9 +182,8 @@ def main(session, details):
             continue
         question += " Keep your response under 80 words."
         chat_history = memory.load_memory_variables({}).get("history", [])
-        ai_msg = rag_chain.invoke(
+        answer = rag_chain.invoke(
             {"question": question, "chat_history": chat_history})
-        answer = ai_msg.content
         print(answer)
         memory.save_context({"input": question}, {"output": answer})
         yield session.call("rom.actuator.light.write", mode="linear", frames=[

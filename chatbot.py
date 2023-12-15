@@ -108,9 +108,8 @@ while True:
     question += " Keep your response under 80 words."
     ai_msg = rag_chain.invoke(
         {"question": question, "chat_history": chat_history})
-    answer = ai_msg.content.strip().replace("\n\n", "\n").replace("\n", " ")
-    print(f"AI: {answer}\n")
-    memory.save_context({"input": question}, {"output": answer})
+    print(f"AI: {ai_msg}\n")
+    memory.save_context({"input": question}, {"output": ai_msg})
 
 goodbye_msg = """
 AI: Goodbye, we hope you find the perfect sneakers for your needs at our store. \
