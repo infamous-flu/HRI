@@ -74,6 +74,7 @@ rag_chain = (
         context=condense_question | retriever | format_docs)
     | qa_prompt
     | chat
+    | StrOutputParser()
 )
 
 welcome_msg_long = """
