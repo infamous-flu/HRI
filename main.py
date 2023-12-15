@@ -103,7 +103,7 @@ first_time_msg = f""" You have 10 seconds for each of your questions, please \
 keep your questions short and concise. Wait half a second after each of my \
 responses before asking your question to ensure optimal speech recognition. \
 My eyes will light up green when I'm listening and red when I've stopped. \
-Say 'goodbye' if you want to stop the interaction"""
+Say 'goodbye' if you want to stop the interaction. Do you have a question?"""
 
 memory = ConversationSummaryBufferMemory(
     llm=llm, max_token_limit=500, return_messages=True
