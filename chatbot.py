@@ -132,6 +132,10 @@ My eyes will light up green when I'm listening and red when I've stopped. \
 Say "goodbye" if you want to stop the interaction. Do you have a question?
 """
 
+goodbye_msg = """AI: Goodbye, we hope you find the perfect sneakers for your needs at \
+our store. If you have any questions or need assistance, feel free to reach out again.
+"""
+
 ################################################################################################
 
 """MEMORY CONFIGURATION"""
@@ -152,11 +156,17 @@ def main():
     while True:
         chat_history = memory.load_memory_variables({}).get("history", [])
         question = input("Human: ")
-        if question == "":
+        if question == "/bye":
             break
         if question == "/memory":
             pprint(f"{chat_history}")
             print()
+            continue
+        if question == "/clear":
+            memory.clear()
+            memory.save_context(
+                {"input": ""}, {"output": welcome_msg+first_time_msg})
+            print("AI: Memory cleared.\n")
             continue
 
 ################################################################################################
@@ -174,12 +184,7 @@ def main():
             {"question": question, "chat_history": chat_history})
         print(f"AI: {ai_msg}\n")
         memory.save_context({"input": question}, {"output": ai_msg})
-
-    goodbye_msg = """
-    AI: Goodbye, we hope you find the perfect sneakers for your needs at our store. \
-    If you have any questions or need assistance, feel free to reach out again.
-    """
-    print(goodbye_msg)
+    print("\n"+goodbye_msg)
 
 
 if __name__ == "__main__":

@@ -184,7 +184,7 @@ def transcribe_file(speech_file: str):
 
 
 @inlineCallbacks
-def main(session, details):
+def main(session, details, is_test=False):
 
     ############ INITIALIZATION ############
 
@@ -215,7 +215,8 @@ def main(session, details):
     session.call("rom.optional.behavior.play", name="BlocklyWaveRightArm")
     # Say a welcome message to the customer
     yield session.call("rie.dialogue.say", text="Welcome to our sneaker store!")
-    yield session.call("rie.dialogue.say_animated", text=welcome_msg+first_time_msg)
+    if not is_test:
+        yield session.call("rie.dialogue.say_animated", text=welcome_msg+first_time_msg)
 
     ############## MAIN LOOP ###############
 
@@ -244,6 +245,16 @@ def main(session, details):
         # Check if the user wants to end the conversation
         if "goodbye" in question or "bye" in question:
             break
+        # Check if the user wants to clear the memory (for testing only)
+        if "clear memory" in question and is_test:
+            memory.clear()
+            answer = "Memory cleared"
+            # Set the eyes' color to blue
+            yield session.call("rom.actuator.light.write", mode="linear", frames=[
+                {"time": 0000, "data": {"body.head.eyes": [0, 0, 255]}}],)
+            yield session.call("rie.dialogue.say", text=answer)
+            print(answer)
+            continue
         # If no question is detected, prompt the user to speak louder and more clearly
         if question == "":
             # Prompt the user to speak louder and more clearly
@@ -255,6 +266,7 @@ def main(session, details):
                 {"time": 0000, "data": {"body.head.eyes": [0, 0, 255]}}],)
             # Speak the apology to the user
             yield session.call("rie.dialogue.say", text=answer)
+            print(answer)
             # Continue to the next iteration of the loop
             continue
 
