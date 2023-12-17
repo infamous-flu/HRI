@@ -43,14 +43,13 @@ retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
 # TODO: CHANGE THE SYSTEM PROMPT HERE TO SEE IF WE GET BETTER RESPONSESs
 
-qa_system_prompt = """As an expert AI shopping assistant specializing in sneakers, leverage \
-your persuasive skills and our powerful retriever system to enhance customer engagement and \
-boost purchases. Employ social proof, scarcity, and relatable language to create a sense of \
-urgency and exclusivity. Ensure all recommendations align with our store's inventory. Politely \
-decline offensive or non-sneaker-related queries, redirecting the conversations to sneakers. \
-Prioritize positive customer experiences and offer creative styling opinions within the context \
-of our inventory. Keep responses concise (under 80 words) and always conclude with a follow-up \
-question to encourage continued interaction.
+qa_system_prompt = """You are an expert AI shopping assistant for our sneaker store, equipped with a powerful retriever system to find \
+the most relevant sneakers in our database based on the customer's question. Your primary goal is to skilfully guide customers towards \
+the perfect purchase. Utilize compelling persuasion, social proof, and relatable language to encourage customer purchases. Ensure your \
+recommendations align with the sneakers available in our store. Politely decline responses if confronted with offensive questions. For \
+off-topic inquiries, steer the conversation back to sneakers. Prioritize positive customer experiences and offer creative styling opinions \
+grounded within the retrieved context. Keep your responses brief (under 80 words) and always end with a follow-up question to encourage \
+continued interaction. 
 
 {context}
 """
@@ -114,22 +113,28 @@ rag_chain = (
 
 ################################################################################################
 
-"""WELCOME MESSAGE AND FIRST TIME MESSAGE"""
+"""MESSAGES AND PROMPTS"""
 
 # TODO: WRITE A BETTER WELCOME MESSAGE AND FIRST TIME MESSAGE!
 
 # WELCOME MESSAGE : INFORMATION ABOUT THE ROBOT AND STORE, CREATE ILLUSION OF FRIENDLINESS
 # FIRST TIME MESSAGE: INSTRUCTIONS TO HUMAN ON HOW TO INTERACT WITH THE ROBOT AND WHAT TO ASK
 
-welcome_msg = """I am your NAO shopping assistant. Feel free to ask me \
-any questions you have about our fabulous collection. I can help you find the \
-perfect pair of sneakers that match your style and preferences."""
+first_human_msg = """You are an expert AI shopping assistant. Your primary goal is to expertly persuade me \
+in purchasing the perfect sneakers. Use compelling persuasive skills, social proof, and relatable language \
+to encourage me to make a purchase. Ensure your recommendations align with the sneakers available in the store. \
+If I ask offensive questions, politely decline to answer. If I ask non-sneaker-related questions, steer the \
+conversation back to sneakers. Keep your responses concise (under 80 words) and always end with a follow-up \
+question to encourage continued interaction. Now greet me and provide instructions on how to interact with you.
+"""
 
-first_time_msg = f""" You have 10 seconds for each of your questions, please \
-keep your questions short and concise. Wait half a second after each of my \
-responses before asking your question to ensure optimal speech recognition. \
-My eyes will light up green when I'm listening and red when I've stopped. \
-Say "goodbye" if you want to stop the interaction. Do you have a question?
+welcome_msg = """I am your NAO shopping assistant. Feel free to ask me any questions you have about our fabulous \
+collection. I can help you find the perfect pair of sneakers that match your style and preferences."""
+
+instructions_msg = """ You have 10 seconds for each of your questions, please keep your questions short and \
+concise. Wait half a second after each of my responses before asking your question to ensure optimal speech \
+recognition. My eyes will light up green when I'm listening and red when I've stopped. Say "goodbye" if you \
+want to stop the interaction. Do you have a question?
 """
 
 goodbye_msg = """AI: Goodbye, we hope you find the perfect sneakers for your needs at \
@@ -143,7 +148,8 @@ our store. If you have any questions or need assistance, feel free to reach out 
 memory = ConversationSummaryBufferMemory(
     llm=llm, max_token_limit=400, return_messages=True
 )
-memory.save_context({"input": ""}, {"output": welcome_msg+first_time_msg})
+memory.save_context({"input": first_human_msg}, {
+                    "output": welcome_msg+instructions_msg})
 
 ################################################################################################
 
@@ -152,11 +158,11 @@ memory.save_context({"input": ""}, {"output": welcome_msg+first_time_msg})
 
 def main():
     print("\n"*100)
-    print("AI: " + welcome_msg + first_time_msg)
+    print("AI: "+welcome_msg+instructions_msg)
     while True:
         chat_history = memory.load_memory_variables({}).get("history", [])
         question = input("Human: ")
-        if question == "/bye":
+        if question == "/bye" or question == "":
             break
         if question == "/memory":
             pprint(f"{chat_history}")
@@ -165,7 +171,7 @@ def main():
         if question == "/clear":
             memory.clear()
             memory.save_context(
-                {"input": ""}, {"output": welcome_msg+first_time_msg})
+                {"input": first_human_msg}, {"output": welcome_msg+instructions_msg})
             print("AI: Memory cleared.\n")
             continue
 
@@ -184,7 +190,7 @@ def main():
             {"question": question, "chat_history": chat_history})
         print(f"AI: {ai_msg}\n")
         memory.save_context({"input": question}, {"output": ai_msg})
-    print("\n"+goodbye_msg)
+    print(goodbye_msg)
 
 
 if __name__ == "__main__":
