@@ -155,7 +155,7 @@ questions or need assistance, feel free to reach out again."""
 """MEMORY CONFIGURATION"""
 
 memory = ConversationSummaryBufferMemory(
-    llm=llm, max_token_limit=400, return_messages=True
+    llm=llm, max_token_limit=300, return_messages=True
 )
 memory.save_context(
     {"input": first_human_msg}, {"output": welcome_msg+instructions_msg})
