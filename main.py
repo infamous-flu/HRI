@@ -144,7 +144,7 @@ collection. I can help you find the perfect pair of sneakers that match your sty
 instructions_msg = """ You have 10 seconds for each of your questions, please keep your questions short and \
 concise. Wait half a second after each of my responses before asking your question to ensure optimal speech \
 recognition. My eyes will light up green when I'm listening and red when I've stopped. Say "goodbye" if you \
-want to stop the interaction. Do you have a question?
+want to stop the interaction. You may now ask me a question about sneakers.
 """
 
 goodbye_msg = """Goodbye, we hope you find the perfect sneakers for your needs at our store. If you have any \
