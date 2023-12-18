@@ -192,7 +192,7 @@ def transcribe_file(speech_file: str):
 
 
 @inlineCallbacks
-def main(session, details, is_test=False):
+def main(session, details):
 
     ############ INITIALIZATION ############
 
@@ -223,8 +223,7 @@ def main(session, details, is_test=False):
     session.call("rom.optional.behavior.play", name="BlocklyWaveRightArm")
     # Say a welcome message to the customer
     yield session.call("rie.dialogue.say", text="Welcome to our sneaker store!")
-    if not is_test:
-        yield session.call("rie.dialogue.say_animated", text=welcome_msg+instructions_msg)
+    yield session.call("rie.dialogue.say_animated", text=welcome_msg+instructions_msg)
 
     ############## MAIN LOOP ###############
 
@@ -254,7 +253,7 @@ def main(session, details, is_test=False):
         if "goodbye" in question or "bye" in question:
             break
         # Check if the user wants to clear the memory (for testing only)
-        if "clear memory" in question and is_test:
+        if "clear memory" in question:
             memory.clear()
             answer = "Memory cleared"
             memory.save_context(
