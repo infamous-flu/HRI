@@ -2,6 +2,7 @@
 
 """REQUIRED MODULES"""
 
+import os
 from autobahn.twisted.component import Component, run
 from autobahn.wamp.exception import ApplicationError
 from twisted.internet.defer import inlineCallbacks
@@ -20,7 +21,10 @@ from langchain.prompts import (
 from langchain.schema import StrOutputParser
 from langchain.schema.runnable import RunnablePassthrough
 from langchain.memory import ConversationSummaryBufferMemory
+from dotenv import load_dotenv
 from pprint import pprint
+
+load_dotenv()
 
 ################################################################################################
 
@@ -328,7 +332,7 @@ wamp = Component(
                 "serializers": ["msgpack"],
                 "max_retries": 0
                 }],
-    realm="rie.657c29b3cfc130d68e544a00",
+    realm=os.getenv("WAMP_REALM"),
 )
 
 wamp.on_join(main)
