@@ -50,8 +50,6 @@ retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
 """QA PROMPT CONFIGURATION"""
 
-# TODO: CHANGE THE SYSTEM PROMPT HERE TO SEE IF WE GET BETTER RESPONSESs
-
 qa_system_prompt = """You are an expert AI shopping assistant for our sneaker store, equipped with a powerful retriever system to find \
 the most relevant sneakers in our database based on the customer's question. Your primary goal is to skilfully guide customers towards \
 the perfect purchase. Utilize compelling persuasion, social proof, and relatable language to encourage customer purchases. Ensure your \
@@ -125,10 +123,10 @@ rag_chain = (
 
 """MESSAGES AND PROMPTS"""
 
-# TODO: WRITE A BETTER WELCOME MESSAGE AND FIRST TIME MESSAGE!
-
 # WELCOME MESSAGE : INFORMATION ABOUT THE ROBOT AND STORE, CREATE ILLUSION OF FRIENDLINESS
-# FIRST TIME MESSAGE: INSTRUCTIONS TO HUMAN ON HOW TO INTERACT WITH THE ROBOT AND WHAT TO ASK
+# FIRST HUMAN MESSAGE: INSTRUCTIONS TO ROBOT ON HOW TO INTERACT WITH THE HUMAN AND WHAT TO ASK
+# INSTRUCTION MESSAGE: INSTRUCTIONS TO HUMAN ON HOW TO INTERACT WITH THE ROBOT AND WHAT TO ASK
+# GOODBYE MESSAGE: A GOODBYE MESSAGE THAT IS TO BE SAID AFTER THE INTERACTION
 
 first_human_msg = """You are an expert AI shopping assistant. Your primary goal is to expertly persuade me \
 in purchasing the perfect sneakers. Use compelling persuasive skills, social proof, and relatable language \
@@ -183,6 +181,7 @@ def transcribe_file(speech_file: str):
         print(output.strip())
         return output.strip()
     except Exception as e:
+        print(e)
         return ""
 
 ################################################################################################
@@ -282,8 +281,6 @@ def main(session, details):
         ########################################################################################
 
         """ADDITIONAL INSTRUCTION APPENDED AFTER EACH HUMAN MESSAGE"""
-
-        # TODO: MAYBE CHANGE THIS TO GET A BETTER RESPONSE FROM THE AI?
 
         #   BE CAREFUL!!! THIS IS MUCH STRONGER THAN CHANGING THE SYSTEM
         #   PROMPT AND CAN REALLY LEAD TO DUMB AI RESPONSES
